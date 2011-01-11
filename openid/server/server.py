@@ -994,7 +994,7 @@ class OpenIDResponse(object):
             self.fields)
 
 
-    def toFormMarkup(self, form_tag_attrs=None):
+    def toFormMarkup(self, form_tag_attrs=None, formbuilder=None):
         """Returns the form markup for this response.
 
         @param form_tag_attrs: Dictionary of attributes to be added to
@@ -1007,7 +1007,8 @@ class OpenIDResponse(object):
         @since: 2.1.0
         """
         return self.fields.toFormMarkup(self.request.return_to,
-                                        form_tag_attrs=form_tag_attrs)
+                                        form_tag_attrs=form_tag_attrs,
+                                        formbuilder=formbuilder)
 
     def toHTML(self, form_tag_attrs=None):
         """Returns an HTML document that auto-submits the form markup
@@ -1330,7 +1331,7 @@ class Encoder(object):
     responseFactory = WebResponse
 
 
-    def encode(self, response):
+    def encode(self, response, formbuilder=None):
         """Encode a response to a L{WebResponse}.
 
         @raises EncodingError: When I can't figure out how to encode this
@@ -1347,7 +1348,7 @@ class Encoder(object):
                                       headers={'location': location})
         elif encode_as == ENCODE_HTML_FORM:
             wr = self.responseFactory(code=HTTP_OK,
-                                      body=response.toFormMarkup())
+                                      body=response.toFormMarkup(formbuilder=formbuilder))
         else:
             # Can't encode this to a protocol message.  You should probably
             # render it to HTML and show it to the user.
@@ -1369,7 +1370,7 @@ class SigningEncoder(Encoder):
         self.signatory = signatory
 
 
-    def encode(self, response):
+    def encode(self, response, formbuilder=None):
         """Encode a response to a L{WebResponse}, signing it first if appropriate.
 
         @raises EncodingError: When I can't figure out how to encode this
@@ -1389,7 +1390,7 @@ class SigningEncoder(Encoder):
             if response.fields.hasKey(OPENID_NS, 'sig'):
                 raise AlreadySigned(response)
             response = self.signatory.sign(response)
-        return super(SigningEncoder, self).encode(response)
+        return super(SigningEncoder, self).encode(response, formbuilder)
 
 
 
@@ -1619,7 +1620,7 @@ class Server(object):
         return self.decoder.decode(query)
 
 
-    def encodeResponse(self, response):
+    def encodeResponse(self, response, formbuilder=None):
         """Encode a response to a L{WebResponse}, signing it first if appropriate.
 
         @raises EncodingError: When I can't figure out how to encode this
@@ -1631,7 +1632,7 @@ class Server(object):
 
         @see: L{SigningEncoder.encode}
         """
-        return self.encoder.encode(response)
+        return self.encoder.encode(response, formbuilder)
 
 
 

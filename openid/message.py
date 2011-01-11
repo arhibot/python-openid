@@ -298,8 +298,32 @@ class Message(object):
 
         return kvargs
 
+    @staticmethod
+    def defaultFormBuilder(msg, action_url, form_tag_attrs, submit_text):
+        form = ElementTree.Element(u'form')
+
+        if form_tag_attrs:
+            for name, attr in form_tag_attrs.iteritems():
+                form.attrib[name] = attr
+
+        form.attrib[u'action'] = oidutil.toUnicode(action_url)
+        form.attrib[u'method'] = u'post'
+        form.attrib[u'accept-charset'] = u'UTF-8'
+        form.attrib[u'enctype'] = u'application/x-www-form-urlencoded'
+        
+        for name, value in msg.toPostArgs().iteritems():
+            attrs = {u'type': u'hidden',
+                     u'name': oidutil.toUnicode(name),
+                     u'value': oidutil.toUnicode(value)}
+            form.append(ElementTree.Element(u'input', attrs))
+
+        submit = ElementTree.Element(u'input',
+            {u'type':'submit', u'value':oidutil.toUnicode(submit_text)})
+        form.append(submit)
+        return form
+
     def toFormMarkup(self, action_url, form_tag_attrs=None,
-                     submit_text=u"Continue"):
+                     submit_text=u"Continue", formbuilder=None):
         """Generate HTML form markup that contains the values in this
         message, to be HTTP POSTed as x-www-form-urlencoded UTF-8.
 
@@ -324,28 +348,10 @@ class Message(object):
             raise RuntimeError('This function requires ElementTree.')
 
         assert action_url is not None
-
-        form = ElementTree.Element(u'form')
-
-        if form_tag_attrs:
-            for name, attr in form_tag_attrs.iteritems():
-                form.attrib[name] = attr
-
-        form.attrib[u'action'] = oidutil.toUnicode(action_url)
-        form.attrib[u'method'] = u'post'
-        form.attrib[u'accept-charset'] = u'UTF-8'
-        form.attrib[u'enctype'] = u'application/x-www-form-urlencoded'
-
-        for name, value in self.toPostArgs().iteritems():
-            attrs = {u'type': u'hidden',
-                     u'name': oidutil.toUnicode(name),
-                     u'value': oidutil.toUnicode(value)}
-            form.append(ElementTree.Element(u'input', attrs))
-
-        submit = ElementTree.Element(u'input',
-            {u'type':'submit', u'value':oidutil.toUnicode(submit_text)})
-        form.append(submit)
-
+        if not formbuilder:
+            formbuilder = self.defaultFormBuilder
+        form = formbuilder(self, action_url, form_tag_attrs, submit_text)
+        
         return ElementTree.tostring(form, encoding='utf-8')
 
     def toURL(self, base_url):
