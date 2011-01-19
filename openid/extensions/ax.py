@@ -377,15 +377,6 @@ class FetchRequest(AXMessage):
             self.requested_attributes[type_uri].required = True
 
         if_available = toTypeURIs(aliases, ax_args.get('if_available'))
-
-        all_type_uris = required + if_available
-
-        for type_uri in aliases.iterNamespaceURIs():
-            if type_uri not in all_type_uris:
-                raise AXError(
-                    'Type URI %r was in the request but not '
-                    'present in "required" or "if_available"' % (type_uri,))
-
         self.update_url = ax_args.get('update_url')
 
     def iterAttrs(self):
